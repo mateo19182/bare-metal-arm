@@ -43,29 +43,9 @@ int sw2_check()
   return( !(GPIOC->PDIR & (1 << 12)) );
 }
 
-// LED_GREEN = PTD5
-void led_green_ini()
-{
-  SIM->COPC = 0;
-  SIM->SCGC5 |= SIM_SCGC5_PORTD_MASK;
-  PORTD->PCR[5] = PORT_PCR_MUX(1);
-  GPIOD->PDDR |= (1 << 5);
-  GPIOD->PSOR = (1 << 5);
-}
-
 void led_green_toggle()
 {
   GPIOD->PTOR = (1 << 5);
-}
-
-// LED_RED = PTE29
-void led_red_ini()
-{
-  SIM->COPC = 0;
-  SIM->SCGC5 |= SIM_SCGC5_PORTE_MASK;
-  PORTE->PCR[29] = PORT_PCR_MUX(1);
-  GPIOE->PDDR |= (1 << 29);
-  GPIOE->PSOR = (1 << 29);
 }
 
 void led_red_toggle(void)
@@ -83,24 +63,20 @@ void leds_ini()
   PORTE->PCR[29] = PORT_PCR_MUX(1);
   GPIOD->PDDR |= (1 << 5);
   GPIOE->PDDR |= (1 << 29);
-  // both LEDS off after init
+  //LEDS off after init
   GPIOD->PSOR = (1 << 5);
   GPIOE->PSOR = (1 << 29);
 }
-
-int state = 0; // 0, 1, 2, 3
-
 
 
 int main(void) {
     leds_ini();
     sw1_ini();
     sw2_ini();
-    state = 1;  // Initial state
+    int state = 1;
 
     while (1) {
         if (sw1_check()) {
-            // Left button (sw1) pressed
             switch (state) {
                 case 1: //LED vermello acendido e verde apagado,
                     led_red_toggle();
@@ -122,13 +98,12 @@ int main(void) {
                     state = 1;
                     break;
             }
-            // Wait for the button release
+            //button release
             while (sw1_check());
         }
 
         if (sw2_check()) {
-            // Right button (sw2) pressed
-            // Invert the LEDs but keep the order of states
+            // invertir lEDs manteniendo orden
             switch (state) {
                 case 1:
                     led_green_toggle();
@@ -151,7 +126,6 @@ int main(void) {
                     state = 1;
                     break;
             }
-            // Wait for the button release
             while (sw2_check());
         }
     }
