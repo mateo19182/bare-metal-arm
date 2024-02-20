@@ -92,25 +92,69 @@ int state = 0; // 0, 1, 2, 3
 
 
 
-int main(void)
-{
-  leds_ini();
-  sw1_ini();
-  sw2_ini();
+int main(void) {
+    leds_ini();
+    sw1_ini();
+    sw2_ini();
+    state = 1;  // Initial state
 
-  led_green_toggle();
-  while (1) {
-    if (sw1_check()) {
-      led_green_toggle();
-      led_red_toggle();
-      while (sw1_check());
-    }
-    if (sw2_check()) {
-      led_green_toggle();
-      led_red_toggle();
-      while (sw2_check());
-    }
-  }
+    while (1) {
+        if (sw1_check()) {
+            // Left button (sw1) pressed
+            switch (state) {
+                case 1: //LED vermello acendido e verde apagado,
+                    led_red_toggle();
+                    state = 2;
+                    break;
+                case 2: //LED vermello apagado e verde acendido
+                    led_green_toggle();
+                    led_red_toggle();
+                    state = 3;
+                    break;
+                case 3: //dous LEDs acendidos,
+                    led_red_toggle();
+                    state = 4;
+                    break;
+                case 4:
+                    // Turn off both LEDs
+                    led_green_toggle();
+                    led_red_toggle();
+                    state = 1;
+                    break;
+            }
+            // Wait for the button release
+            while (sw1_check());
+        }
 
-  return 0;
+        if (sw2_check()) {
+            // Right button (sw2) pressed
+            // Invert the LEDs but keep the order of states
+            switch (state) {
+                case 1:
+                    led_green_toggle();
+                    led_red_toggle();
+                    state = 4;
+                    break;
+                case 2:
+                    led_green_toggle();
+                    led_red_toggle();
+                    state = 3;
+                    break;
+                case 3:
+                    led_green_toggle();
+                    led_red_toggle();
+                    state = 2;
+                    break;
+                case 4:
+                    led_green_toggle();
+                    led_red_toggle();
+                    state = 1;
+                    break;
+            }
+            // Wait for the button release
+            while (sw2_check());
+        }
+    }
+
+    return 0;
 }
