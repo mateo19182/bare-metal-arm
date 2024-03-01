@@ -43,6 +43,7 @@ void WEAK  MCGIntHandler(void);
 void WEAK  LPTMRIntHandler(void);
 void WEAK  PORTAIntHandler(void);
 void WEAK  PORTDIntHandler(void);
+void WEAK  SysTick_Handler(void);
 
 //*****************************************************************************
 // Symbols defined in linker script
@@ -132,6 +133,7 @@ void (* const g_pfnVectors[])(void) =
     PORTDIntHandler,                        // PORTC/PORTD handler
   };
 
+#include "system_MKL46Z4.h"
 //*****************************************************************************
 //! \brief This is the code that gets called when the processor first
 //! starts execution following a reset event.
@@ -146,6 +148,8 @@ void (* const g_pfnVectors[])(void) =
 void Default_ResetHandler(void)
 {
   unsigned long *pulSrc, *pulDest;
+
+  SystemInit();
 
   /* copy the data segment initializers from flash to SRAM */
   pulSrc = &_sidata;
