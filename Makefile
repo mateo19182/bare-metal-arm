@@ -1,7 +1,11 @@
+#TOOLCHAIN=~/toolchain/gcc-arm-none-eabi-4_9-2014q4/bin
+#PREFIX=$(TOOLCHAIN)/arm-none-eabi-
 PREFIX=arm-none-eabi-
+
 ARCHFLAGS=-mthumb -mcpu=cortex-m0plus
 COMMONFLAGS=-g3 -Og -Wall -Werror $(ARCHFLAGS)
-CFLAGS=-I./includes -I./drivers $(COMMONFLAGS) -D CPU_MKL46Z128VLH4
+
+CFLAGS=-I./includes $(COMMONFLAGS)
 LDFLAGS=$(COMMONFLAGS) --specs=nano.specs -Wl,--gc-sections,-Map,$(TARGET).map,-Tlink.ld
 LDLIBS=
 
@@ -11,42 +15,28 @@ OBJCOPY=$(PREFIX)objcopy
 SIZE=$(PREFIX)size
 RM=rm -f
 
-BUILD_TARGET ?= hello
+TARGET=main
 
-ifeq ($(BUILD_TARGET),hello)
-TARGET=hello_world
-SRC=$(filter-out drivers/pin_mux_led.c, $(wildcard drivers/*.c includes/*.c startup.c)) $(TARGET).c
+SRC=$(wildcard *.c)
+OBJ=$(patsubst %.c, %.o, $(SRC))
 
-else ifeq ($(BUILD_TARGET),led)
-TARGET=led_blinky
-SRC=$(filter-out drivers/pin_mux_hello.c, $(wildcard drivers/*.c includes/*.c startup.c)) $(TARGET).c
-
-else
-$(error BUILD_TARGET unknown. Use BT=hello or BT=led)
-endif
-
-OBJ = $(patsubst %.c, %.o, $(SRC))
-
-all: echo_target build size
-
-echo_target:
-	@echo "Building target: $(TARGET)"
-
-build: $(TARGET).elf $(TARGET).srec $(TARGET).bin
+all: build size
+build: elf srec bin
+elf: $(TARGET).elf
+srec: $(TARGET).srec
+bin: $(TARGET).bin
 
 clean:
-	@echo "Cleaning..."
-	$(RM) *.srec *.elf *.bin *.map $(OBJ)
+	$(RM) $(TARGET).srec $(TARGET).elf $(TARGET).bin $(TARGET).map $(OBJ)
 
 $(TARGET).elf: $(OBJ)
-	@echo "Linking $@"
-	$(LD) $(LDFLAGS) -o $@ $(OBJ) $(LDLIBS)
+	$(LD) $(LDFLAGS) $(OBJ) $(LDLIBS) -o $@
 
 %.srec: %.elf
 	$(OBJCOPY) -O srec $< $@
 
 %.bin: %.elf
-	$(OBJCOPY) -O binary $< $@
+	    $(OBJCOPY) -O binary $< $@
 
 size:
 	$(SIZE) $(TARGET).elf

@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "pin_mux.h": "c",
+        "fsl_common.h": "c",
+        "fsl_device_registers.h": "c",
+        "fsl_gpio.h": "c",
+        "pin_mux_led.h": "c"
+    }
+}
