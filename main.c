@@ -8,6 +8,8 @@
 // RIGHT (SW1) = PTC3 (pin 73)
 // LEFT (SW2) = PTC12 (pin 88)
 
+int state = 1;
+
 void delay(void)
 {
   volatile int i;
@@ -20,8 +22,11 @@ void sw1_ini()
 {
   SIM->COPC = 0;  //disables the COP watchdog timer
   SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;   //enables the clock gate for Port C
-  PORTC->PCR[3] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1);  //PCR for Pin 3 of Port C
+  PORTC->PCR[3] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1) | PORT_PCR_IRQC(0b1001);  //PCR for Pin 3 of Port C
   GPIOC->PDDR &= ~(1 << 3); //PDDR to configure Pin 3 of Port C as an input
+
+  NVIC_SetPriority(PORTC_PORTD_IRQn, 0);
+  NVIC_EnableIRQ(PORTC_PORTD_IRQn);
 }
 
 // LEFT_SWITCH (SW2) = PTC12
@@ -29,8 +34,11 @@ void sw2_ini()
 {
   SIM->COPC = 0;
   SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;
-  PORTC->PCR[12] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1);
+  PORTC->PCR[12] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1) | PORT_PCR_IRQC(0b1001);
   GPIOC->PDDR &= ~(1 << 12);
+
+  NVIC_SetPriority(PORTC_PORTD_IRQn, 0);
+  NVIC_EnableIRQ(PORTC_PORTD_IRQn);
 }
 
 int sw1_check()
@@ -53,8 +61,73 @@ void led_red_toggle(void)
   GPIOE->PTOR = (1 << 29);
 }
 
+void sw1(void)
+{
+  switch (state) {
+    case 1: //LED vermello acendido e verde apagado,
+        led_red_toggle();
+        state = 2;
+        break;
+    case 2: //LED vermello apagado e verde acendido
+        led_green_toggle();
+        led_red_toggle();
+        state = 3;
+        break;
+    case 3: //dous LEDs acendidos,
+        led_red_toggle();
+        state = 4;
+        break;
+    case 4:
+        // Turn off both LEDs
+        led_green_toggle();
+        led_red_toggle();
+        state = 1;
+        break;
+  }
+}
+
+void sw2(void) {
+  switch (state) {
+    case 1:
+        led_green_toggle();
+        led_red_toggle();
+        state = 4;
+        break;
+    case 2:
+        led_green_toggle();
+        led_red_toggle();
+        state = 3;
+        break;
+    case 3:
+        led_green_toggle();
+        led_red_toggle();
+        state = 2;
+        break;
+    case 4:
+        led_green_toggle();
+        led_red_toggle();
+        state = 1;
+        break;
+  }
+}
+
+void PORTDIntHandler() {
+    if (PORTC->ISFR & (1 << 3)) {
+        sw1();
+        PORTC->ISFR = (1 << 3);
+    }
+
+    if (PORTC->ISFR & (1 << 12)) {
+        sw2();
+        PORTC->ISFR = (1 << 12);
+    }
+}
+
+
+
 // LED_RED = PTE29
-// LED_GREEN = PTD5
+// LED_GREEN = PTD57
+
 void leds_ini()
 {
   SIM->COPC = 0;
@@ -73,62 +146,7 @@ int main(void) {
     leds_ini();
     sw1_ini();
     sw2_ini();
-    int state = 1;
-
+    
     while (1) {
-        if (sw1_check()) {
-            switch (state) {
-                case 1: //LED vermello acendido e verde apagado,
-                    led_red_toggle();
-                    state = 2;
-                    break;
-                case 2: //LED vermello apagado e verde acendido
-                    led_green_toggle();
-                    led_red_toggle();
-                    state = 3;
-                    break;
-                case 3: //dous LEDs acendidos,
-                    led_red_toggle();
-                    state = 4;
-                    break;
-                case 4:
-                    // Turn off both LEDs
-                    led_green_toggle();
-                    led_red_toggle();
-                    state = 1;
-                    break;
-            }
-            //button release
-            while (sw1_check());
-        }
-
-        if (sw2_check()) {
-            // invertir lEDs manteniendo orden
-            switch (state) {
-                case 1:
-                    led_green_toggle();
-                    led_red_toggle();
-                    state = 4;
-                    break;
-                case 2:
-                    led_green_toggle();
-                    led_red_toggle();
-                    state = 3;
-                    break;
-                case 3:
-                    led_green_toggle();
-                    led_red_toggle();
-                    state = 2;
-                    break;
-                case 4:
-                    led_green_toggle();
-                    led_red_toggle();
-                    state = 1;
-                    break;
-            }
-            while (sw2_check());
-        }
     }
-
-    return 0;
 }
