@@ -1,4 +1,5 @@
 #include "MKL46Z4.h"
+#include "lcd.h"
 
 // LED (RG)
 // LED_GREEN = PTD5 (pin 98)
@@ -8,7 +9,13 @@
 // RIGHT (SW1) = PTC3 (pin 73)
 // LEFT (SW2) = PTC12 (pin 88)
 
-int state = 1;
+// Enable IRCLK (Internal Reference Clock)
+// see Chapter 24 in MCU doc
+void irclk_ini()
+{
+  MCG->C1 = MCG_C1_IRCLKEN(1) | MCG_C1_IREFSTEN(1);
+  MCG->C2 = MCG_C2_IRCS(0); //0 32KHZ internal reference clock; 1= 4MHz irc
+}
 
 void delay(void)
 {
@@ -20,13 +27,10 @@ void delay(void)
 // RIGHT_SWITCH (SW1) = PTC3
 void sw1_ini()
 {
-  SIM->COPC = 0;  //disables the COP watchdog timer
-  SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;   //enables the clock gate for Port C
-  PORTC->PCR[3] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1) | PORT_PCR_IRQC(0b1001);  //PCR for Pin 3 of Port C
-  GPIOC->PDDR &= ~(1 << 3); //PDDR to configure Pin 3 of Port C as an input
-
-  NVIC_SetPriority(PORTC_PORTD_IRQn, 0);
-  NVIC_EnableIRQ(PORTC_PORTD_IRQn);
+  SIM->COPC = 0;
+  SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;
+  PORTC->PCR[3] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1);
+  GPIOC->PDDR &= ~(1 << 3);
 }
 
 // LEFT_SWITCH (SW2) = PTC12
@@ -34,11 +38,8 @@ void sw2_ini()
 {
   SIM->COPC = 0;
   SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;
-  PORTC->PCR[12] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1) | PORT_PCR_IRQC(0b1001);
+  PORTC->PCR[12] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1);
   GPIOC->PDDR &= ~(1 << 12);
-
-  NVIC_SetPriority(PORTC_PORTD_IRQn, 0);
-  NVIC_EnableIRQ(PORTC_PORTD_IRQn);
 }
 
 int sw1_check()
@@ -51,9 +52,40 @@ int sw2_check()
   return( !(GPIOC->PDIR & (1 << 12)) );
 }
 
+// RIGHT_SWITCH (SW1) = PTC3
+// LEFT_SWITCH (SW2) = PTC12
+void sws_ini()
+{
+  SIM->COPC = 0;
+  SIM->SCGC5 |= SIM_SCGC5_PORTC_MASK;
+  PORTC->PCR[3] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1);
+  PORTC->PCR[12] |= PORT_PCR_MUX(1) | PORT_PCR_PE(1);
+  GPIOC->PDDR &= ~(1 << 3 | 1 << 12);
+}
+
+// LED_GREEN = PTD5
+void led_green_ini()
+{
+  SIM->COPC = 0;
+  SIM->SCGC5 |= SIM_SCGC5_PORTD_MASK;
+  PORTD->PCR[5] = PORT_PCR_MUX(1);
+  GPIOD->PDDR |= (1 << 5);
+  GPIOD->PSOR = (1 << 5);
+}
+
 void led_green_toggle()
 {
   GPIOD->PTOR = (1 << 5);
+}
+
+// LED_RED = PTE29
+void led_red_ini()
+{
+  SIM->COPC = 0;
+  SIM->SCGC5 |= SIM_SCGC5_PORTE_MASK;
+  PORTE->PCR[29] = PORT_PCR_MUX(1);
+  GPIOE->PDDR |= (1 << 29);
+  GPIOE->PSOR = (1 << 29);
 }
 
 void led_red_toggle(void)
@@ -61,73 +93,8 @@ void led_red_toggle(void)
   GPIOE->PTOR = (1 << 29);
 }
 
-void sw1(void)
-{
-  switch (state) {
-    case 1: //LED vermello acendido e verde apagado,
-        led_red_toggle();
-        state = 2;
-        break;
-    case 2: //LED vermello apagado e verde acendido
-        led_green_toggle();
-        led_red_toggle();
-        state = 3;
-        break;
-    case 3: //dous LEDs acendidos,
-        led_red_toggle();
-        state = 4;
-        break;
-    case 4:
-        // Turn off both LEDs
-        led_green_toggle();
-        led_red_toggle();
-        state = 1;
-        break;
-  }
-}
-
-void sw2(void) {
-  switch (state) {
-    case 1:
-        led_green_toggle();
-        led_red_toggle();
-        state = 4;
-        break;
-    case 2:
-        led_green_toggle();
-        led_red_toggle();
-        state = 3;
-        break;
-    case 3:
-        led_green_toggle();
-        led_red_toggle();
-        state = 2;
-        break;
-    case 4:
-        led_green_toggle();
-        led_red_toggle();
-        state = 1;
-        break;
-  }
-}
-
-void PORTDIntHandler() {
-    if (PORTC->ISFR & (1 << 3)) {
-        sw1();
-        PORTC->ISFR = (1 << 3);
-    }
-
-    if (PORTC->ISFR & (1 << 12)) {
-        sw2();
-        PORTC->ISFR = (1 << 12);
-    }
-}
-
-
-
 // LED_RED = PTE29
-// LED_GREEN = PTD57
-
+// LED_GREEN = PTD5
 void leds_ini()
 {
   SIM->COPC = 0;
@@ -136,17 +103,47 @@ void leds_ini()
   PORTE->PCR[29] = PORT_PCR_MUX(1);
   GPIOD->PDDR |= (1 << 5);
   GPIOE->PDDR |= (1 << 29);
-  //LEDS off after init
+  // both LEDS off after init
   GPIOD->PSOR = (1 << 5);
   GPIOE->PSOR = (1 << 29);
 }
 
+// Hit condition: (else, it is a miss)
+// - Left switch matches red light
+// - Right switch matches green light
 
-int main(void) {
-    leds_ini();
-    sw1_ini();
-    sw2_ini();
-    
-    while (1) {
+int main(void)
+{
+  irclk_ini(); // Enable internal ref clk to use by LCD
+
+  lcd_ini();
+  lcd_display_dec(666);
+
+  // 'Random' sequence :-)
+  volatile unsigned int sequence = 0x32B14D98,
+    index = 0;
+
+  while (index < 32) {
+    if (sequence & (1 << index)) { //odd
+      //
+      // Switch on green led
+      // [...]
+      //
+    } else { //even
+      //
+      // Switch on red led
+      // [...]
+      //
     }
+    // [...]
+  }
+
+  // Stop game and show blinking final result in LCD: hits:misses
+  // [...]
+  //
+
+  while (1) {
+  }
+
+  return 0;
 }

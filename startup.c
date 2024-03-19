@@ -146,7 +146,7 @@ void (* const g_pfnVectors[])(void) =
 void Default_ResetHandler(void)
 {
   unsigned long *pulSrc, *pulDest;
-  
+
   /* copy the data segment initializers from flash to SRAM */
   pulSrc = &_sidata;
   for(pulDest = &_sdata; pulDest < &_edata; )
