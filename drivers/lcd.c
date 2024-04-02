@@ -324,21 +324,18 @@ void lcd_set(uint8_t value, uint8_t digit)
 uint32_t divide_inline(uint32_t dividend, uint32_t divisor) {
     uint32_t quotient = 0;
     
-    // Inline assembly start
     __asm(
-        "1: \n"                       // Label for loop start
-        "cmp %[divisor], %[dividend]\n"  // Compare divisor and dividend
-        "bhi 2f\n"                    // If divisor > dividend, jump to label 2 (end of loop)
+        "1: \n"                     
+        "cmp %[divisor], %[dividend]\n" 
+        "bhi 2f\n"                    // If divisor > dividend, jump to end of loop
         "sub %[dividend], %[dividend], %[divisor]\n" // Subtract divisor from dividend
-        "add %[quotient], %[quotient], #1\n"         // Increment quotient
-        "b 1b\n"                      // Loop back to label 1
-        "2: \n"                       // Label for loop end
-        : [quotient] "+r" (quotient), [dividend] "+r" (dividend)  // Output operands
-        : [divisor] "r" (divisor)                             // Input operands
-        : "cc"                             // Clobbers condition code flags
-    );
-    // Inline assembly end
-    
+        "add %[quotient], %[quotient], #1\n"        
+        "b 1b\n"                      // Loop back
+        "2: \n"                       // loop end
+        : [quotient] "+r" (quotient), [dividend] "+r" (dividend)  // Output 
+        : [divisor] "r" (divisor)                             // Input 
+        : "cc"                            
+    );    
     return quotient;
 }
 
