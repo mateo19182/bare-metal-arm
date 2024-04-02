@@ -17,7 +17,7 @@ RM=rm -f
 
 TARGET=main
 
-SRC=$(wildcard *.c drivers/*.c)
+SRC=$(wildcard *.c drivers/*.c drivers/*.s)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 
 all: build size
