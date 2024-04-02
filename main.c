@@ -112,6 +112,34 @@ void leds_ini()
 // - Left switch matches red light
 // - Right switch matches green light
 
+
+void TIMER_Setup(uint32_t duration_ms) {
+    // Calculate the timer count value based on the desired duration and clock frequency
+    uint32_t timerCount = (CLOCK_GetOutClkFreq() / 1000) * duration_ms; //1000 is the number freq in ms
+    // Configure the timer peripheral with the calculated count value
+    // This will likely involve setting a match value or period register in the timer
+    // And configuring the timer to reset or generate an interrupt when it reaches this value
+    TIMER_ConfigurePeriod(timerCount);
+
+    // Enable the timer interrupt (if using interrupts)
+    TIMER_EnableInterrupts();
+
+    // Start the timer
+    TIMER_Start();
+}
+
+void TIMER_IRQHandler(void) {
+    // Timer interrupt handler
+    // This function is called when the timer reaches the specified duration
+
+    // Your code to handle the timer event goes here
+
+    // Clear the timer interrupt flag (to prevent the interrupt from continuously firing)
+    TIMER_ClearInterruptFlag();
+}
+
+
+
 int main(void)
 {
   irclk_ini(); // Enable internal ref clk to use by LCD
@@ -123,24 +151,16 @@ int main(void)
   volatile unsigned int sequence = 0x32B14D98,
     index = 0;
 
-  while (index < 32) {
-    if (sequence & (1 << index)) { //odd
-      //
-      // Switch on green led
-      // [...]
-      //
-    } else { //even
-      //
-      // Switch on red led
-      // [...]
-      //
-    }
-    // [...]
-  }
+  // Initialize OSC0 as an external clock source
+  CLOCK_InitOsc0();
+  // Configure the MCG to use the external clock source
+  CLOCK_SetExternalRefClkConfig();
+  // If necessary, configure the PLL to generate higher frequencies
+  CLOCK_EnablePll0(); 
 
-  // Stop game and show blinking final result in LCD: hits:misses
-  // [...]
-  //
+  // Example: Configure the timer for a 1-second periodic interrupt
+  TIMER_Setup(1000);
+
 
   while (1) {
   }
