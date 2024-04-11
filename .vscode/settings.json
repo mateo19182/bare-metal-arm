@@ -4,6 +4,7 @@
         "fsl_common.h": "c",
         "fsl_device_registers.h": "c",
         "fsl_gpio.h": "c",
-        "pin_mux_led.h": "c"
+        "pin_mux_led.h": "c",
+        "lcd.h": "c"
     }
 }
