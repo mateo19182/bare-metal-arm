@@ -41,6 +41,7 @@ int sw2_check()
     return !(GPIOC->PDIR & (1 << 12));
 }
 
+//MCGIntHandler
 void TPM0_IRQHandler(void)
 {
     // Clear interrupt flag
