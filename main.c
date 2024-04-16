@@ -42,6 +42,8 @@ int sw2_check()
 }
 
 //MCGIntHandler
+//TPM0_IRQHandler
+//DMA0IntHandler
 void TPM0_IRQHandler(void)
 {
     // Clear interrupt flag
