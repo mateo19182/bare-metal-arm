@@ -58,23 +58,24 @@ int main(void)
     uint8_t minutes = 0;
     uint8_t seconds = 0;
     int timerStarted = 0;
+    
     tpm_config_t tpmInfo;
 
     TPM_GetDefaultConfig(&tpmInfo);
 
-    // Modify the TPM settings if needed, then initialize TPM with the config
+    //initialize TPM with the config
     TPM_Init(BOARD_TPM, &tpmInfo);
 
-    // Set timer period for 1 second
+    // timer period = 1 second
     TPM_SetTimerPeriod(BOARD_TPM, USEC_TO_COUNT(1000000U, TPM_SOURCE_CLOCK));
 
-    // Enable Timer Overflow Interrupt
+    // enable Timer Overflow Interrupt
     TPM_EnableInterrupts(BOARD_TPM, kTPM_TimeOverflowInterruptEnable);
 
-    // Enable the IRQ for the TPM
+    // enable IRQ for TPM
     EnableIRQ(BOARD_TPM_IRQ_NUM);
 
-    // Start the timer
+    // start timer
     TPM_StartTimer(BOARD_TPM, kTPM_SystemClock);
 
     while (1)
