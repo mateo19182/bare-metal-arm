@@ -76,6 +76,7 @@
 #define BOARD_ACCEL_ADDR BOARD_MMA8451_ADDR
 #define BOARD_ACCEL_BAUDRATE 100
 #define BOARD_ACCEL_I2C_BASEADDR I2C0
+#define BOARD_ACCEL_I2C_CLOCK_FREQ CLOCK_GetFreq(I2C0_CLK_SRC)
 
 #define BOARD_TSI_ELECTRODE_CNT 2U
 #ifndef BOARD_TSI_ELECTRODE_1
@@ -91,6 +92,33 @@
 
 /*! @brief The rtc instance used for board. */
 #define BOARD_RTC_FUNC_BASEADDR RTC
+
+/*! @brief Define the port interrupt number for the board switches */
+#ifndef BOARD_SW1_GPIO
+#define BOARD_SW1_GPIO GPIOC
+#endif
+#ifndef BOARD_SW1_PORT
+#define BOARD_SW1_PORT PORTC
+#endif
+#ifndef BOARD_SW1_GPIO_PIN
+#define BOARD_SW1_GPIO_PIN 3U
+#endif
+#define BOARD_SW1_IRQ PORTC_PORTD_IRQn
+#define BOARD_SW1_IRQ_HANDLER PORTC_PORTD_IRQHandler
+#define BOARD_SW1_NAME "SW1"
+
+#ifndef BOARD_SW3_GPIO
+#define BOARD_SW3_GPIO GPIOC
+#endif
+#ifndef BOARD_SW3_PORT
+#define BOARD_SW3_PORT PORTC
+#endif
+#ifndef BOARD_SW3_GPIO_PIN
+#define BOARD_SW3_GPIO_PIN 12U
+#endif
+#define BOARD_SW3_IRQ PORTC_PORTD_IRQn
+#define BOARD_SW3_IRQ_HANDLER PORTC_PORTD_IRQHandler
+#define BOARD_SW3_NAME "SW3"
 
 /* Board led color mapping */
 #define LOGIC_LED_ON 0U
@@ -139,6 +167,24 @@ extern "C" {
  ******************************************************************************/
 
 void BOARD_InitDebugConsole(void);
+#if defined(SDK_I2C_BASED_COMPONENT_USED) && SDK_I2C_BASED_COMPONENT_USED
+void BOARD_I2C_Init(I2C_Type *base, uint32_t clkSrc_Hz);
+status_t BOARD_I2C_Send(I2C_Type *base,
+                        uint8_t deviceAddress,
+                        uint32_t subAddress,
+                        uint8_t subaddressSize,
+                        uint8_t *txBuff,
+                        uint8_t txBuffSize);
+status_t BOARD_I2C_Receive(I2C_Type *base,
+                           uint8_t deviceAddress,
+                           uint32_t subAddress,
+                           uint8_t subaddressSize,
+                           uint8_t *rxBuff,
+                           uint8_t rxBuffSize);
+void BOARD_Accel_I2C_Init(void);
+status_t BOARD_Accel_I2C_Send(uint8_t deviceAddress, uint32_t subAddress, uint8_t subaddressSize, uint32_t txBuff);
+status_t BOARD_Accel_I2C_Receive(uint8_t deviceAddress, uint32_t subAddress, uint8_t subaddressSize, uint8_t *rxBuff, uint8_t rxBuffSize);
+#endif /* SDK_I2C_BASED_COMPONENT_USED */
 
 #if defined(__cplusplus)
 }

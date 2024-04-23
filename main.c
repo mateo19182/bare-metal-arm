@@ -1,10 +1,13 @@
+
 #include "MKL46Z4.h"
 #include "lcd.h"
 #include "fsl_tpm.h"
 
+#define TPM_SOURCE_CLOCK (CLOCK_GetFreq(kCLOCK_PllFllSelClk)/4)
 #define BOARD_TPM TPM0
-#define TPM_SOURCE_CLOCK (CLOCK_GetFreq(kCLOCK_PllFllSelClk) / 4)
 #define BOARD_TPM_IRQ_NUM TPM0_IRQn
+#define BOARD_TPM_HANDLER FTM0IntHandler
+#define TPM_PRESCALER kTPM_Prescale_Divide_4
 
 volatile bool tpmIsrFlag = false;
 volatile uint32_t milisecondCounts = 0U;
@@ -41,27 +44,28 @@ int sw2_check()
     return !(GPIOC->PDIR & (1 << 12));
 }
 
-//MCGIntHandler
-//TPM0_IRQHandler
-//DMA0IntHandler
-void TPM0_IRQHandler(void)
-{
-    // Clear interrupt flag
-    TPM_ClearStatusFlags(BOARD_TPM, kTPM_TimeOverflowFlag);
-    tpmIsrFlag = true;
-}
-
 int main(void)
 {
     irclk_ini();
-    lcd_ini();
     sws_ini();
+    lcd_ini();
 
     uint8_t minutes = 0;
     uint8_t seconds = 0;
     int timerStarted = 0;
-    
+
+    lcd_display_time(minutes, seconds);
+
     tpm_config_t tpmInfo;
+
+    //delay();
+
+    //BOARD_InitPins();
+    //BOARD_BootClockRUN();
+    
+    CLOCK_SetTpmClock(3);
+    //SIM-> SCGC6 |= SIM_SCGC6_TMP(1);
+    //SIM-> SOPT2 |= SIM_SOPT2_TMPSCR(3);
 
     TPM_GetDefaultConfig(&tpmInfo);
 
@@ -69,7 +73,7 @@ int main(void)
     TPM_Init(BOARD_TPM, &tpmInfo);
 
     // timer period = 1 second
-    TPM_SetTimerPeriod(BOARD_TPM, USEC_TO_COUNT(1000000U, TPM_SOURCE_CLOCK));
+    TPM_SetTimerPeriod(BOARD_TPM, USEC_TO_COUNT(10000U, TPM_SOURCE_CLOCK));
 
     // enable Timer Overflow Interrupt
     TPM_EnableInterrupts(BOARD_TPM, kTPM_TimeOverflowInterruptEnable);
@@ -78,36 +82,49 @@ int main(void)
     EnableIRQ(BOARD_TPM_IRQ_NUM);
 
     // start timer
-    TPM_StartTimer(BOARD_TPM, kTPM_SystemClock);
+    //TPM_StartTimer(BOARD_TPM, kTPM_SystemClock);
 
     while (1)
     {
         // start timer
         if (sw1_check() && sw2_check())
         {
-            timerStarted = 1;
-            minutes = 0;
-            seconds = 0;
+            if (timerStarted)
+            {
+                timerStarted = 0;
+                TPM_StopTimer(BOARD_TPM);
+            }
+            else
+            {
+                timerStarted = 1;
+                TPM_StartTimer(BOARD_TPM, kTPM_SystemClock);
+            }
+            //minutes = 0;
+            //seconds = 0;
             delay();
         }
-
         // timer logic
         if (timerStarted)
         {
-            while (1)
+            while (true)
             {
                 if (tpmIsrFlag)
                 {
                     tpmIsrFlag = false;
-                    seconds++;
-                    if (seconds >= 60)
-                    {
-                        seconds = 0;
-                        minutes++;
-                    }
-                    if (minutes >= 60)
-                    {
-                        minutes = 0;
+                    seconds--;
+                    if (seconds == 0)
+                    {                        
+                        if (minutes == 0)                            
+                        {
+                            TPM_StopTimer(BOARD_TPM);
+                            timerStarted = 0;
+                            break;
+                        }
+                        else
+                        {
+                            seconds = 59;
+                            minutes--;
+                        }
                     }
                     lcd_display_time(minutes, seconds);
                 }
@@ -138,11 +155,16 @@ int main(void)
                 delay();
             }
         }
-
         // display time
         lcd_display_time(minutes, seconds);
         delay();
     }
-
     return 0;
+}
+
+void FTM0IntHandler(void)
+{
+    // clear interrupt flag
+    TPM_ClearStatusFlags(BOARD_TPM, kTPM_TimeOverflowFlag);
+    tpmIsrFlag = true;
 }
