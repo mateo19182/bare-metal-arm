@@ -83,81 +83,80 @@ int main(void)
 
     // start timer
     //TPM_StartTimer(BOARD_TPM, kTPM_SystemClock);
-
     while (1)
     {
-        // start timer
+        // Handle start/pause logic
         if (sw1_check() && sw2_check())
         {
             if (timerStarted)
             {
+                // Pause timer
                 timerStarted = 0;
-                TPM_StopTimer(BOARD_TPM);
+                //TPM_StopTimer(BOARD_TPM);
             }
             else
             {
+                // Start/Resume timer
                 timerStarted = 1;
                 TPM_StartTimer(BOARD_TPM, kTPM_SystemClock);
             }
-            //minutes = 0;
-            //seconds = 0;
-            delay();
+            delay(); // Debounce delay
         }
-        // timer logic
+
+        // Timer running logic
         if (timerStarted)
         {
-            while (true)
+            if (tpmIsrFlag)
             {
-                if (tpmIsrFlag)
+                tpmIsrFlag = false;
+                if (seconds > 0)
                 {
-                    tpmIsrFlag = false;
                     seconds--;
-                    if (seconds == 0)
-                    {                        
-                        if (minutes == 0)                            
-                        {
-                            TPM_StopTimer(BOARD_TPM);
-                            timerStarted = 0;
-                            break;
-                        }
-                        else
-                        {
-                            seconds = 59;
-                            minutes--;
-                        }
-                    }
-                    lcd_display_time(minutes, seconds);
                 }
+                else if (minutes > 0)
+                {
+                    seconds = 59;
+                    minutes--;
+                }
+                else
+                {
+                    // Stop timer when reaching 0:00
+                    timerStarted = 0;
+                    TPM_StopTimer(BOARD_TPM);
+                    lcd_display_time(0, 0); 
+                    continue; // Skip further logic in this loop iteration
+                }
+                lcd_display_time(minutes, seconds);
             }
         }
+        // Time setting when timer is not running
         else
         {
-            // increment seconds
+            // Increment seconds
             if (sw1_check())
             {
                 seconds++;
-                if (seconds > 59)
+                if (seconds >= 60)
                 {
                     seconds = 0;
                     minutes++;
                 }
-                delay();
+                lcd_display_time(minutes, seconds);
+                delay(); // Debounce delay
             }
 
-            // increment minutes
+            // Increment minutes
             if (sw2_check())
             {
                 minutes++;
-                if (minutes > 59)
+                if (minutes >= 60)
                 {
                     minutes = 0;
                 }
-                delay();
+                lcd_display_time(minutes, seconds);
+                delay(); // Debounce delay
             }
         }
-        // display time
-        lcd_display_time(minutes, seconds);
-        delay();
     }
     return 0;
 }
