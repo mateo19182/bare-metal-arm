@@ -1,5 +1,14 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include "MKL46Z4.h"
 #include "lcd.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
 
 // LED (RG)
 // LED_GREEN = PTD5 (pin 98)
@@ -108,47 +117,92 @@ void leds_ini()
   GPIOE->PSOR = (1 << 29);
 }
 
-// Hit condition: (else, it is a miss)
-// - Left switch matches red light
-// - Right switch matches green light
+
+SemaphoreHandle_t sem;
+QueueHandle_t queue;
+
+uint8_t productores = 0;
+uint8_t consumidores = 0;
+uint8_t mensajes = 0;
+
+void processMessage(int data) {
+  delay();  
+}
+
+int getData() {
+  delay();  
+  return rand() % 100; // Datos arbitrarios
+}
+
+void prod() {
+    int data;
+    while(1) {
+      xSemaphoreTake(sem, portMAX_DELAY);
+      for (int i = 0; i < productores; i++)
+      {
+        data = getData();
+        xQueueSend(queue, &data, portMAX_DELAY);
+        mensajes++;
+      }
+      xSemaphoreGive(sem);
+    }
+}
+
+
+void cons() {
+    int data;
+    while(1) {
+      xSemaphoreTake(sem, portMAX_DELAY);
+      for (int i = 0; i < productores; i++)
+      {
+        xQueueReceive(queue, &data, portMAX_DELAY);
+        processMessage(data);
+        mensajes--;
+      }
+      xSemaphoreGive(sem);
+    }
+}
+
+void lcd_sw(){
+  if (sw1_check())
+  {   
+    productores++;
+    if(productores>4){
+        productores=0;
+    }
+    delay();
+  }   
+  if (sw2_check())
+  {   
+    if (consumidores>4)
+    {
+      consumidores=0;
+    } 
+    consumidores++;
+    delay();
+  }   
+
+  lcd_set(productores, 1);
+  lcd_set(consumidores, 2);
+  lcd_set(mensajes, 3);
+  lcd_set(mensajes%10, 4);
+
+}
 
 int main(void)
 {
   irclk_ini(); // Enable internal ref clk to use by LCD
   lcd_ini();
   sws_ini();
-
-  uint8_t productores = 0;
-  uint8_t consumidores = 0;
-  uint8_t mensajes = 0;
-
-  while(1)
-  {
-    if (sw1_check())
-      {   
-        productores++;
-        if(productores>9){
-          productores=0;
-        }
-        delay();
-      }   
-    if (sw2_check())
-      {   
-        if (consumidores>9)
-        {
-          consumidores=0;
-        }
-        
-        consumidores++;
-        delay();
-      }   
-      //lcd_display_dec(productores);
-      lcd_set(productores, 1);
-      lcd_set(consumidores, 2);
-      lcd_set(mensajes, 3);
-      lcd_set(mensajes%10, 4);
-  }
   
+  sem = xSemaphoreCreateCounting(10, 0);
+  queue = xQueueCreate(100, sizeof(int));
 
+  xTaskCreate(prod, "Producer", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
+  xTaskCreate(cons, "Consumer", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
+  xTaskCreate(lcd_sw, "LCD", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
+
+  vTaskStartScheduler();
+  
   return 0;
 }

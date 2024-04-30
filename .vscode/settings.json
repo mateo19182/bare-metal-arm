@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "mkl46z4.h": "c",
+        "core_cm0plus.h": "c",
+        "stdint.h": "c",
+        "cstdint": "c",
+        "lcd.h": "c",
+        "stdint-gcc.h": "c",
+        "freertos.h": "c",
+        "task.h": "c"
+    }
+}
