@@ -318,15 +318,12 @@ void lcd_set(uint8_t value, uint8_t digit)
   }
 }
 
+
 //
 // Displays a 4 Digit number in decimal
 //
 void lcd_display_dec(uint16_t value)
 {
-  //comprobar codigo division aqui
-  //embebido no código C (inline ASM).
-  //arquivo .s propio que haberá que ensamblar para obter o código obxecto que logo enlazar co resto
-
   if (value > 9999) {
     //Display "Err" if value is greater than 4 digits
     lcd_display_error(0x10);
@@ -336,7 +333,6 @@ void lcd_display_dec(uint16_t value)
     lcd_set((value - (value/100)*100)/10, 3);
     lcd_set(value - (value/10)*10, 4);
   }
-
 }
 
 
