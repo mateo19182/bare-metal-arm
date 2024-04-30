@@ -136,32 +136,36 @@ int getData() {
 
 void prod() {
     int data;
-    while(1) {
-      xSemaphoreTake(sem, portMAX_DELAY);
-      for (int i = 0; i < productores; i++)
-      {
-        data = getData();
-        xQueueSend(queue, &data, portMAX_DELAY);
-        mensajes++;
-      }
-      xSemaphoreGive(sem);
+    while (1) {
+        if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE) {
+            for (int i = 0; i < productores; i++) {
+                data = getData();
+                if (xQueueSend(queue, &data, portMAX_DELAY) == pdTRUE) {
+                    mensajes++;
+                }
+            }
+            xSemaphoreGive(sem);
+        }
     }
 }
+
 
 
 void cons() {
     int data;
-    while(1) {
-      xSemaphoreTake(sem, portMAX_DELAY);
-      for (int i = 0; i < productores; i++)
-      {
-        xQueueReceive(queue, &data, portMAX_DELAY);
-        processMessage(data);
-        mensajes--;
-      }
-      xSemaphoreGive(sem);
+    while (1) {
+        if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE) {
+            for (int i = 0; i < productores; i++) {
+                if (xQueueReceive(queue, &data, portMAX_DELAY) == pdTRUE) {
+                    processMessage(data);
+                    mensajes--;
+                }
+            }
+            xSemaphoreGive(sem);
+        }
     }
 }
+
 
 void lcd_sw(){
   if (sw1_check())
@@ -195,7 +199,7 @@ int main(void)
   lcd_ini();
   sws_ini();
   
-  sem = xSemaphoreCreateCounting(10, 0);
+  sem = xSemaphoreCreateMutex();
   queue = xQueueCreate(100, sizeof(int));
 
   xTaskCreate(prod, "Producer", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
