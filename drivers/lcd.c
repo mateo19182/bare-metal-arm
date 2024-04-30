@@ -318,29 +318,6 @@ void lcd_set(uint8_t value, uint8_t digit)
   }
 }
 
-
-
-
-uint32_t divide_inline(uint32_t dividend, uint32_t divisor) {
-    uint32_t quotient = 0;
-    
-    __asm(
-        "1: \n"                     
-        "cmp %[divisor], %[dividend]\n" 
-        "bhi 2f\n"                    // If divisor > dividend, jump to end of loop
-        "sub %[dividend], %[dividend], %[divisor]\n" // Subtract divisor from dividend
-        "add %[quotient], %[quotient], #1\n"        
-        "b 1b\n"                      // Loop back
-        "2: \n"                       // loop end
-        : [quotient] "+r" (quotient), [dividend] "+r" (dividend)  // Output 
-        : [divisor] "r" (divisor)                             // Input 
-        : "cc"                            
-    );    
-    return quotient;
-}
-
-extern uint32_t divide(uint32_t dividend, uint32_t divisor);
-
 //
 // Displays a 4 Digit number in decimal
 //
@@ -354,15 +331,10 @@ void lcd_display_dec(uint16_t value)
     //Display "Err" if value is greater than 4 digits
     lcd_display_error(0x10);
   } else {
-    // lcd_set(value/1000, 1);
-    // lcd_set((value - (value/1000)*1000)/100, 2);
-    // lcd_set((value - (value/100)*100)/10, 3);
-    // lcd_set(value - (value/10)*10, 4);
-    
-    lcd_set(divide_inline(value,1000) , 1);
-    lcd_set((value - (divide(value,1000))*1000)/100, 2);
-    lcd_set((value - (divide_inline(value,100))*100)/10, 3);
-    lcd_set(value - (divide(value,10))*10, 4);
+    lcd_set(value/1000, 1);
+    lcd_set((value - (value/1000)*1000)/100, 2);
+    lcd_set((value - (value/100)*100)/10, 3);
+    lcd_set(value - (value/10)*10, 4);
   }
 
 }

@@ -115,35 +115,40 @@ void leds_ini()
 int main(void)
 {
   irclk_ini(); // Enable internal ref clk to use by LCD
-
   lcd_ini();
-  lcd_display_dec(555);
+  sws_ini();
 
-  // 'Random' sequence :-)
-  volatile unsigned int sequence = 0x32B14D98,
-    index = 0;
+  uint8_t productores = 0;
+  uint8_t consumidores = 0;
+  uint8_t mensajes = 0;
 
-  while (index < 32) {
-    if (sequence & (1 << index)) { //odd
-      //
-      // Switch on green led
-      // [...]
-      //
-    } else { //even
-      //
-      // Switch on red led
-      // [...]
-      //
-    }
-    // [...]
+  while(1)
+  {
+    if (sw1_check())
+      {   
+        productores++;
+        if(productores>9){
+          productores=0;
+        }
+        delay();
+      }   
+    if (sw2_check())
+      {   
+        if (consumidores>9)
+        {
+          consumidores=0;
+        }
+        
+        consumidores++;
+        delay();
+      }   
+      //lcd_display_dec(productores);
+      lcd_set(productores, 1);
+      lcd_set(consumidores, 2);
+      lcd_set(mensajes, 3);
+      lcd_set(mensajes%10, 4);
   }
-
-  // Stop game and show blinking final result in LCD: hits:misses
-  // [...]
-  //
-
-  while (1) {
-  }
+  
 
   return 0;
 }
