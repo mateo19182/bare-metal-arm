@@ -1,13 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "MKL46Z4.h"
 #include "lcd.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "semphr.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
 #include "semphr.h"
 
 // LED (RG)
@@ -23,14 +17,15 @@
 void irclk_ini()
 {
   MCG->C1 = MCG_C1_IRCLKEN(1) | MCG_C1_IREFSTEN(1);
-  MCG->C2 = MCG_C2_IRCS(0); //0 32KHZ internal reference clock; 1= 4MHz irc
+  MCG->C2 = MCG_C2_IRCS(0); // 0 32KHZ internal reference clock; 1= 4MHz irc
 }
 
 void delay(void)
 {
   volatile int i;
 
-  for (i = 0; i < 1000000; i++);
+  for (i = 0; i < 10000; i++)
+    ;
 }
 
 // RIGHT_SWITCH (SW1) = PTC3
@@ -53,12 +48,12 @@ void sw2_ini()
 
 int sw1_check()
 {
-  return( !(GPIOC->PDIR & (1 << 3)) );
+  return (!(GPIOC->PDIR & (1 << 3)));
 }
 
 int sw2_check()
 {
-  return( !(GPIOC->PDIR & (1 << 12)) );
+  return (!(GPIOC->PDIR & (1 << 12)));
 }
 
 // RIGHT_SWITCH (SW1) = PTC3
@@ -117,7 +112,6 @@ void leds_ini()
   GPIOE->PSOR = (1 << 29);
 }
 
-
 SemaphoreHandle_t sem;
 QueueHandle_t queue;
 
@@ -125,88 +119,111 @@ uint8_t productores = 0;
 uint8_t consumidores = 0;
 uint8_t mensajes = 0;
 
-void processMessage(int data) {
-  delay();  
+void processMessage(int data)
+{
+  delay();
 }
 
-int getData() {
-  delay();  
-  return rand() % 100; // Datos arbitrarios
+int getData()
+{
+  return 1;
 }
-
-void prod() {
-    int data;
-    while (1) {
-        if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE) {
-            for (int i = 0; i < productores; i++) {
-                data = getData();
-                if (xQueueSend(queue, &data, portMAX_DELAY) == pdTRUE) {
-                    mensajes++;
-                }
-            }
-            xSemaphoreGive(sem);
-        }
-    }
-}
-
-
-
-void cons() {
-    int data;
-    while (1) {
-        if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE) {
-            for (int i = 0; i < productores; i++) {
-                if (xQueueReceive(queue, &data, portMAX_DELAY) == pdTRUE) {
-                    processMessage(data);
-                    mensajes--;
-                }
-            }
-            xSemaphoreGive(sem);
-        }
-    }
-}
-
-
-void lcd_sw(){
-  if (sw1_check())
-  {   
-    productores++;
-    if(productores>4){
-        productores=0;
-    }
-    delay();
-  }   
-  if (sw2_check())
-  {   
-    if (consumidores>4)
+void prod()
+{
+  while (1)
+  {
+    for (int i = 0; i <= productores; i++)
     {
-      consumidores=0;
-    } 
-    consumidores++;
-    delay();
-  }   
+      int data = getData();
+      if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE)
+      {
+        xQueueSend(queue, &data, portMAX_DELAY);
+        mensajes++;
+        xSemaphoreGive(sem);
+      }
+    }
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+}
 
-  lcd_set(productores, 1);
-  lcd_set(consumidores, 2);
-  lcd_set(mensajes, 3);
-  lcd_set(mensajes%10, 4);
+void cons()
+{
+  while (1)
+  {
+    for (int i = 0; i <= consumidores; i++)
+    {
+    int data;
+    if (xQueueReceive(queue, &data, portMAX_DELAY) == pdTRUE)
+    {
+      if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE)
+      {
+        processMessage(data);
+        mensajes--;
+        xSemaphoreGive(sem);
+      }
+    }
+    }
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
+}
 
+void lcd_sw()
+{
+  while (1)
+  {
+    if (sw1_check())
+    {
+      if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE)
+      {
+        productores++;
+        if (productores > 4)
+        {
+          productores = 0;
+        }
+        xSemaphoreGive(sem);
+      }
+      delay();
+    }
+    if (sw2_check())
+    {
+      if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE)
+      {
+        consumidores++;
+        if (consumidores > 4)
+        {
+          consumidores = 0;
+        }
+        xSemaphoreGive(sem);
+      }
+      delay();
+    }
+
+    if (xSemaphoreTake(sem, portMAX_DELAY) == pdTRUE)
+    {
+      lcd_set(productores, 1);
+      lcd_set(consumidores, 2);
+      lcd_set(mensajes / 10, 3);
+      lcd_set(mensajes % 10, 4);
+      xSemaphoreGive(sem);
+    }
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+  }
 }
 
 int main(void)
 {
-  irclk_ini(); // Enable internal ref clk to use by LCD
+  irclk_ini();
   lcd_ini();
   sws_ini();
-  
+
   sem = xSemaphoreCreateMutex();
   queue = xQueueCreate(100, sizeof(int));
 
-  xTaskCreate(prod, "Producer", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
-  xTaskCreate(cons, "Consumer", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
-  xTaskCreate(lcd_sw, "LCD", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL);
+  xTaskCreate(prod, "Producer", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+  xTaskCreate(cons, "Consumer", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+  xTaskCreate(lcd_sw, "LCD", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
   vTaskStartScheduler();
-  
+
   return 0;
 }
