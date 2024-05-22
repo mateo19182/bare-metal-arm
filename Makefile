@@ -5,7 +5,7 @@ PREFIX=arm-none-eabi-
 ARCHFLAGS=-mthumb -mcpu=cortex-m0plus
 COMMONFLAGS=-g3 -Og -Wall -Werror $(ARCHFLAGS)
 
-CFLAGS=-I./includes -I./drivers $(COMMONFLAGS)  -D CPU_MKL46Z128VLH4
+CFLAGS=-I./includes -I./drivers -I./utilities -I./BOARD -I./CMSIS $(COMMONFLAGS)  -D CPU_MKL46Z128VLH4
 LDFLAGS=$(COMMONFLAGS) --specs=nano.specs -Wl,--gc-sections,-Map,$(TARGET).map,-Tlink.ld
 LDLIBS=
 
@@ -17,7 +17,7 @@ RM=rm -f
 
 TARGET=main
 
-SRC=$(wildcard *.c drivers/*.c)
+SRC=$(wildcard *.c drivers/*.c utilities/*.c BOARD/*.c CMSIS/*.c)
 OBJ=$(patsubst %.c, %.o, $(SRC))
 
 all: build size

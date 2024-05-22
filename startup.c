@@ -76,10 +76,6 @@ extern int main(void);
 void ResetHandler(void);
 static void DefaultIntHandler(void);
 
-extern void xPortPendSVHandler( void );
-extern void xPortSysTickHandler( void );
-extern void vPortSVCHandler( void );
-
 //*****************************************************************************
 // The minimal vector table for a Cortex M0+.  Note that the proper constructs
 // must be placed on this to ensure that it ends up at physical address
@@ -87,16 +83,16 @@ extern void vPortSVCHandler( void );
 //*****************************************************************************
 __attribute__ ((section(".isr_vector")))
 void (* const g_pfnVectors[])(void) =
-{
+  {
     (void *)&_start_of_stack,
     ResetHandler,                           // The reset handler
     NMIIntHandler,                          // The NMI handler
     HardFaultIntHandler,                    // The hard fault handler
     0, 0, 0, 0, 0, 0, 0,                    // Reserved
-    vPortSVCHandler,                          // SVCall handler
+    SVCIntHandler,                          // SVCall handler
     0, 0,                                   // Reserved
-    xPortPendSVHandler,                       // The PendSV handler
-    xPortSysTickHandler,                      // The SysTick handler
+    PendSVIntHandler,                       // The PendSV handler
+    SysTickIntHandler,                      // The SysTick handler
 
     DMA0IntHandler,                         // DMA channel 0 transfer complete
                                             // and error handler
@@ -134,7 +130,7 @@ void (* const g_pfnVectors[])(void) =
     0,                                      // Reserved
     PORTAIntHandler,                        // PORTA handler
     PORTDIntHandler,                        // PORTC/PORTD handler
-};
+  };
 
 //*****************************************************************************
 //! \brief This is the code that gets called when the processor first
@@ -149,23 +145,23 @@ void (* const g_pfnVectors[])(void) =
 //*****************************************************************************
 void Default_ResetHandler(void)
 {
-    unsigned long *pulSrc, *pulDest;
-
-    /* copy the data segment initializers from flash to SRAM */
-    pulSrc = &_sidata;
-    for(pulDest = &_sdata; pulDest < &_edata; )
+  unsigned long *pulSrc, *pulDest;
+  
+  /* copy the data segment initializers from flash to SRAM */
+  pulSrc = &_sidata;
+  for(pulDest = &_sdata; pulDest < &_edata; )
     {
-        *(pulDest++) = *(pulSrc++);
+      *(pulDest++) = *(pulSrc++);
     }
 
-    /* zero fill the bss segment */
-    for(pulDest = &_sbss; pulDest < &_ebss; )
+  /* zero fill the bss segment */
+  for(pulDest = &_sbss; pulDest < &_ebss; )
     {
-        *(pulDest++) = 0;
+      *(pulDest++) = 0;
     }
 
-    /* call the application's entry point */
-    main();
+  /* call the application's entry point */
+  main();
 }
 
 //*****************************************************************************
@@ -179,10 +175,10 @@ void Default_ResetHandler(void)
 #pragma weak MemManageIntHandler = DefaultIntHandler
 #pragma weak BusFaultIntHandler = DefaultIntHandler
 #pragma weak UsageFaultIntHandler = DefaultIntHandler
-//#pragma weak SVCIntHandler = DefaultIntHandler
+#pragma weak SVCIntHandler = DefaultIntHandler
 #pragma weak DebugMonIntHandler = DefaultIntHandler
-//#pragma weak PendSVIntHandler = DefaultIntHandler
-//#pragma weak SysTickIntHandler = DefaultIntHandler
+#pragma weak PendSVIntHandler = DefaultIntHandler
+#pragma weak SysTickIntHandler = DefaultIntHandler
 #pragma weak DMA0IntHandler = Default_ResetHandler
 #pragma weak DMA1IntHandler = Default_ResetHandler
 #pragma weak DMA2IntHandler = Default_ResetHandler
@@ -226,5 +222,5 @@ void Default_ResetHandler(void)
 //*****************************************************************************
 static void DefaultIntHandler(void)
 {
-	for(;;);
+  for(;;);
 }
