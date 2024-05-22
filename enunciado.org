@@ -1,0 +1,36 @@
+* Enunciado do exame de 1a oportunidade do curso 22/23 de Sistemas Empotrados: LER CON ATENCIÓN
+
+O exame consistirá no desenvolvemento dunha simple *CLI* (/Command Line Interface/, isto é, unha liña de comandos) para interaccionar coa vosa placa FRDM-KL46Z mediante, neste caso, a interface de depuración: comunicación serie coa SDA da placa a través do porto USB empregando o driver UART da SDK.
+
+Partiredes deste repositorio git, que debedes clonar: [[https://gitlab.citic.udc.es/emilio.padron/se2223_1op]]
+
+Cando compiledes ese código (o Makefile para facelo é cousa vosa tamén) disporedes da comunicación serie a través de USB mediante a interface de depuración xa comentada (podedes ver as funcións e macros que ofrece esta interface en /utilities/fsl_debug_console.h/).
+
+Podedes usar [[https://en.wikipedia.org/wiki/Minicom][minicom]] ou calquera outro software de comunicación serie para probar o voso código. Tedes un exemplo do seu uso xunto a esta tarea do exame, ademais dun binario funcional que manda a cadea 'hello world' se queredes probar a comunicación serie coa vosa placa.
+
+Para desenvolver este proxecto podedes engadir todos os arquivos a maiores que precisedes, ademais de modificar todo o que sexa necesario os arquivos main.c e startup.c. O resto de arquivos non vos está permitido cambialos, nin movelos, nin sobreescribilos con outros.
+
+*ENTREGABLE*: o mesmo repositorio git do que partides, cos vosos commits por riba do previamente existente (que non vos está permitido modificar). Podedes subir o repositorio a algún sitio (gitlab/github/etc.) e pasarme a ligazón ou pasarme un tarball/zip con todo (pero debe estar o repositorio, isto é, o directorio .git). É obrigatorio que fagades varios commits, non me vale un commit «gordo» con todo o voso traballo. Ide facendo commits segundo ides progresando, aínda que non haxa un estado funcional do código. Non incluades arquivos binarios nos commits.
+
+  + *1 punto do exame* Makefile que permita xerar un binario funcional, coa comunicación serie requerida, e «flashealo» na placa cun simple «make flash».
+
+
+  + *2 puntos do exame* Uso dos botóns, mediante interrupcións, para acender/apagar os dous LEDs da placa (a placa iníciase cos dous LEDs apagados):
+    - botón esquerdo: acende, se está apagado, o LED da esquerda. Tamén apaga o outro LED, se estaba acendido.
+    - botón dereito: ídem, pero co outro LED.
+
+
+  + *2 puntos do exame* Interface CLI básica (é dicir, eco por pantalla co carácter asociado a cada tecla que se preme no teclado, e salto de liña co return para completar o comando), mostrando como /prompt/ visual o _símbolo '$' seguido dun espazo_.
+
+    A interface permite introducir, tras o prompt, estes comandos: (case sensitive)
+    - led1: este comando fai o mesmo que o botón esquerdo: acende, se está apagado, o LED da esquerda, apagando o outro se estaba acendido.
+    - led2: fai o mesmo que o botón da dereita, é dicir, o mesmo que led1 pero co outro LED.
+    - off: apaga os dous leds.
+    - toggle: se un led está acendido, apágao e acende o outro. Se ningún está acendido, acende os dous. 
+    - por último, se introducimos directamente un número enteiro sen signo a través da nosa CLI, este número mostrarase no LCD da placa, ademais de na terminal.
+
+
+  + *3 puntos do exame* A nosa CLI admite, ademais de números enteiros sen signo e dos nosos comandos, expresións numéricas con sumas e restas deste tipo: 4+3-6+1. No LCD aparecerá o resultado da operación, neste exemplo un 2. Se o número resultante é negativo ou non se pode mostrar con catro díxitos decimais o LCD mostrará un erro.
+
+
+  + *2 puntos do exame* Extensión sobre o anterior. A nosa CLI agora permite traballar con números negativos, mostrando no LCD números negativo maiores que -999, e un erro en caso de ser menor.
